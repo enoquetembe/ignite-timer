@@ -1,3 +1,7 @@
 @tailwind base;
 @tailwind utilities;
 @tailwind utilities;
+
+.link.active {
+  color: #00B37E;
+}
