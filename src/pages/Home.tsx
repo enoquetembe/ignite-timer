@@ -1,4 +1,4 @@
-import { Play } from 'phosphor-react'
+import { HandPalm, Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
@@ -17,6 +17,7 @@ interface Cycle {
   task: string
   minutesAmount: number
   startDate: Date
+  interruptedDate?: Date
 }
 
 export function Home() {
@@ -64,6 +65,20 @@ export function Home() {
     reset()
   }
 
+  function handleInterruptCycle() {
+    setCycles(
+      cycles.map((cycle) => {
+        if (cycle.id === activeCycleId) {
+          return { ...cycle, interruptedDate: new Date() }
+        } else {
+          return cycle
+        }
+      }),
+    )
+
+    setActiveCycleId(null)
+  }
+
   const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
   const currentSeconds = activeCycle ? totalSeconds - amountOfSecondsPassed : 0
 
@@ -89,6 +104,7 @@ export function Home() {
             id="task"
             list="task-suggestion"
             {...register('task')}
+            disabled={!!activeCycle}
             placeholder="Name your project"
             className="bg-transparent h-9 p-2 border-b-2 font-bold text-lg border-b-timer-gray-500 flex-1 placeholder:text-timer-gray-500 focus:shadow-none focus:border-b-timer-green"
           />
@@ -107,6 +123,7 @@ export function Home() {
             min={5}
             max={60}
             {...register('minutesAmount', { valueAsNumber: true })}
+            disabled={!!activeCycle}
             placeholder="00"
             className="bg-transparent w-16 h-9 p-2 border-b-2 font-bold text-lg border-b-timer-gray-500 placeholder:text-timer-gray-500 focus:shadow-none focus:border-b-timer-green"
           />
@@ -132,14 +149,25 @@ export function Home() {
           </span>
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitDisabled}
-          className="bg-timer-green text-timer-gray-100 w-full rounded-lg flex justify-center items-center gap-2 p-4 font-bold hover:bg-timer-green-dark disabled:opacity-70 disabled:hover:bg-timer-green disabled:cursor-not-allowed"
-        >
-          <Play size={24} />
-          Start
-        </button>
+        {activeCycle ? (
+          <button
+            type="button"
+            onClick={handleInterruptCycle}
+            className="bg-timer-red text-timer-gray-100 w-full rounded-lg flex justify-center items-center gap-2 p-4 font-bold hover:bg-timer-red-dark disabled:opacity-70 disabled:hover:bg-timer-green disabled:cursor-not-allowed"
+          >
+            <HandPalm size={24} />
+            Interrupt
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={isSubmitDisabled}
+            className="bg-timer-green text-timer-gray-100 w-full rounded-lg flex justify-center items-center gap-2 p-4 font-bold hover:bg-timer-green-dark disabled:opacity-70 disabled:hover:bg-timer-green disabled:cursor-not-allowed"
+          >
+            <Play size={24} />
+            Start
+          </button>
+        )}
       </form>
     </div>
   )
