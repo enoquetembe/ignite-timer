@@ -1,7 +1,11 @@
+import { useContext } from 'react'
+import { formatDistanceToNow } from 'date-fns'
 import { TableData } from '../components/TableData'
 import { Status } from '../components/Status'
+import { CyclesContext } from '../contexts/CyclesContext'
 
 export function History() {
+  const { cycles } = useContext(CyclesContext)
   return (
     <main className="flex flex-1 flex-col p-14 text-timer-gray-100">
       <h1 className="text-2xl font-bold font-roboto-mono">My history</h1>
@@ -26,38 +30,33 @@ export function History() {
           </thead>
 
           <tbody>
-            <tr>
-              <TableData>Study</TableData>
-              <TableData>20 minutes</TableData>
-              <TableData>2 days ago</TableData>
-              <TableData>
-                <Status status="Finished" statusColor="timer-green-light" />
-              </TableData>
-            </tr>
-            <tr>
-              <TableData>Study</TableData>
-              <TableData>20 minutes</TableData>
-              <TableData>2 days ago</TableData>
-              <TableData>
-                <Status status="In progress" statusColor="timer-yellow" />
-              </TableData>
-            </tr>
-            <tr>
-              <TableData>Study</TableData>
-              <TableData>20 minutes</TableData>
-              <TableData>2 days ago</TableData>
-              <TableData>
-                <Status status="Canceled" statusColor="timer-red" />
-              </TableData>
-            </tr>
-            <tr>
-              <TableData>Study</TableData>
-              <TableData>20 minutes</TableData>
-              <TableData>2 days ago</TableData>
-              <TableData>
-                <Status status="Finished" statusColor="timer-green-light" />
-              </TableData>
-            </tr>
+            {cycles.map((cycle) => {
+              return (
+                <tr key={cycle.id}>
+                  <TableData>{cycle.task}</TableData>
+                  <TableData>{cycle.minutesAmount} minutes</TableData>
+                  <TableData>
+                    {formatDistanceToNow(cycle.startDate, { addSuffix: true })}
+                  </TableData>
+                  <TableData>
+                    {cycle.finishedDate && (
+                      <Status
+                        status="Finished"
+                        statusColor="timer-green-light"
+                      />
+                    )}
+
+                    {cycle.interruptedDate && (
+                      <Status status="Interrupted" statusColor="timer-red" />
+                    )}
+
+                    {!cycle.interruptedDate && !cycle.finishedDate && (
+                      <Status status="In progress" statusColor="timer-yellow" />
+                    )}
+                  </TableData>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
