@@ -1,16 +1,10 @@
 import { HandPalm, Play } from 'phosphor-react'
-import { useForm } from 'react-hook-form'
+import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { createContext, useState } from 'react'
+import { NewCycleForm } from '../components/NewCycleForm'
+import { CountDown } from '../components/CountDown'
 import * as zod from 'zod'
-import { useEffect, useState } from 'react'
-import { differenceInSeconds } from 'date-fns'
-
-const newCycleFormValidationSchema = zod.object({
-  task: zod.string().min(1, 'Task is required'),
-  minutesAmount: zod.number().min(1).max(60),
-})
-
-type newCycleFormData = zod.infer<typeof newCycleFormValidationSchema>
 
 interface Cycle {
   id: string
@@ -21,12 +15,29 @@ interface Cycle {
   finishedDate?: Date
 }
 
+interface CyclesContextTye {
+  activeCycle: Cycle | undefined
+  activeCycleId: string | null
+  amountOfSecondsPassed: number
+  markCurrentCycleAsFinished: () => void
+  setSecondsPassed: (seconds: number) => void
+}
+
+export const CyclesContext = createContext({} as CyclesContextTye)
+
+const newCycleFormValidationSchema = zod.object({
+  task: zod.string().min(1, 'Task is required'),
+  minutesAmount: zod.number().min(5).max(60),
+})
+
+type newCycleFormData = zod.infer<typeof newCycleFormValidationSchema>
+
 export function Home() {
   const [cycles, setCycles] = useState<Cycle[]>([])
   const [activeCycleId, setActiveCycleId] = useState<string | null>(null)
   const [amountOfSecondsPassed, setAmountOfSecondsPassed] = useState(0)
 
-  const { register, handleSubmit, watch, reset } = useForm<newCycleFormData>({
+  const newCycleForm = useForm<newCycleFormData>({
     resolver: zodResolver(newCycleFormValidationSchema),
     defaultValues: {
       task: '',
@@ -34,43 +45,9 @@ export function Home() {
     },
   })
 
+  const { handleSubmit, watch, reset } = newCycleForm
+
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
-
-  const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
-
-  useEffect(() => {
-    let interval: number
-
-    if (activeCycle) {
-      interval = setInterval(() => {
-        const secondsDifference = differenceInSeconds(
-          new Date(),
-          activeCycle.startDate,
-        )
-
-        if (secondsDifference >= totalSeconds) {
-          setCycles((prevState) =>
-            prevState.map((cycle) => {
-              if (cycle.id === activeCycleId) {
-                return { ...cycle, finishedDate: new Date() }
-              } else {
-                return cycle
-              }
-            }),
-          )
-
-          setAmountOfSecondsPassed(totalSeconds)
-          clearInterval(interval)
-        } else {
-          setAmountOfSecondsPassed(secondsDifference)
-        }
-      }, 1000)
-    }
-
-    return () => {
-      clearInterval(interval)
-    }
-  }, [activeCycle, activeCycleId, totalSeconds])
 
   function handleCreateNewCycle(data: newCycleFormData) {
     const newCycle: Cycle = {
@@ -101,13 +78,21 @@ export function Home() {
     setActiveCycleId(null)
   }
 
-  const currentSeconds = activeCycle ? totalSeconds - amountOfSecondsPassed : 0
+  function markCurrentCycleAsFinished() {
+    setCycles((prevState) =>
+      prevState.map((cycle) => {
+        if (cycle.id === activeCycleId) {
+          return { ...cycle, finishedDate: new Date() }
+        } else {
+          return cycle
+        }
+      }),
+    )
+  }
 
-  const minutesAmount = Math.floor(currentSeconds / 60)
-  const secondsAmount = currentSeconds % 60
-
-  const minutes = String(minutesAmount).padStart(2, '0')
-  const seconds = String(secondsAmount).padStart(2, '0')
+  function setSecondsPassed(seconds: number) {
+    setAmountOfSecondsPassed(seconds)
+  }
 
   const task = watch('task')
   const isSubmitDisabled = !task
@@ -118,57 +103,21 @@ export function Home() {
         onSubmit={handleSubmit(handleCreateNewCycle)}
         className="flex flex-col items-center gap-14"
       >
-        <div className="w-full flex items-center justify-center gap-2 flex-wrap text-timer-gray-100 text-lg font-bold">
-          <label htmlFor="task">I will work on</label>
-          <input
-            type="text"
-            id="task"
-            list="task-suggestion"
-            {...register('task')}
-            disabled={!!activeCycle}
-            placeholder="Name your project"
-            className="bg-transparent h-9 p-2 border-b-2 font-bold text-lg border-b-timer-gray-500 flex-1 placeholder:text-timer-gray-500 focus:shadow-none focus:border-b-timer-green"
-          />
-          <datalist id="task-suggestion">
-            <option value="Design System" />
-            <option value="Front-end" />
-            <option value="PR Review" />
-            <option value="Back-end" />
-          </datalist>
+        <CyclesContext.Provider
+          value={{
+            activeCycle,
+            activeCycleId,
+            amountOfSecondsPassed,
+            markCurrentCycleAsFinished,
+            setSecondsPassed,
+          }}
+        >
+          <FormProvider {...newCycleForm}>
+            <NewCycleForm />
+          </FormProvider>
 
-          <label htmlFor="">For</label>
-          <input
-            type="number"
-            id="minutesAmount"
-            step={1}
-            min={1}
-            max={60}
-            {...register('minutesAmount', { valueAsNumber: true })}
-            disabled={!!activeCycle}
-            placeholder="00"
-            className="bg-transparent w-16 h-9 p-2 border-b-2 font-bold text-lg border-b-timer-gray-500 placeholder:text-timer-gray-500 focus:shadow-none focus:border-b-timer-green"
-          />
-
-          <span>minutes.</span>
-        </div>
-
-        <div className="flex gap-4 font-roboto-mono text-[10rem] leading-[8rem] text-timer-gray-100">
-          <span className="bg-timer-gray-700 px-4 py-8 rounded-lg">
-            {minutes[0]}
-          </span>
-          <span className="bg-timer-gray-700 px-4 py-8 rounded-lg">
-            {minutes[1]}
-          </span>
-          <div className="w-16 flex justify-center py-8 px-0 text-timer-green rounded-lg overflow-hidden">
-            :
-          </div>
-          <span className="bg-timer-gray-700 px-4 py-8 rounded-lg">
-            {seconds[0]}
-          </span>
-          <span className="bg-timer-gray-700 px-4 py-8 rounded-lg">
-            {seconds[1]}
-          </span>
-        </div>
+          <CountDown />
+        </CyclesContext.Provider>
 
         {activeCycle ? (
           <button
