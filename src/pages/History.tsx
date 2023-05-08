@@ -36,22 +36,27 @@ export function History() {
                   <TableData>{cycle.task}</TableData>
                   <TableData>{cycle.minutesAmount} minutes</TableData>
                   <TableData>
-                    {formatDistanceToNow(cycle.startDate, { addSuffix: true })}
+                    {formatDistanceToNow(new Date(cycle.startDate), {
+                      addSuffix: true,
+                    })}
                   </TableData>
                   <TableData>
                     {cycle.finishedDate && (
                       <Status
                         status="Finished"
-                        statusColor="timer-green-light"
+                        statusColor="bg-timer-green-light"
                       />
                     )}
 
                     {cycle.interruptedDate && (
-                      <Status status="Interrupted" statusColor="timer-red" />
+                      <Status status="Interrupted" statusColor="bg-timer-red" />
                     )}
 
                     {!cycle.interruptedDate && !cycle.finishedDate && (
-                      <Status status="In progress" statusColor="timer-yellow" />
+                      <Status
+                        status="In progress"
+                        statusColor="bg-timer-yellow"
+                      />
                     )}
                   </TableData>
                 </tr>
